@@ -1,0 +1,292 @@
+
+---
+title: "Simple Linear Regression with<br>Punta Cana Airbnb Data"
+subtitle: "Analyzing the Relationship Between Bedrooms and Nightly Rate"
+author: "David J. Gibbens<br>www.linkedin.com/in/djogibbens"
+date: "04-12-2026"
+output:
+  ioslides_presentation:
+    widescreen: true
+    self_contained: false
+# css: styles.css
+---
+
+<style type="text/css">
+body p, div, h1, h2, h3, h4, h5 {
+  color: black;
+  font-family: "Modern Computer Roman";
+}
+
+slides > slide.title-slide hgroup h1 {
+  color: #8C1D40;
+}
+
+h2 {
+  color: #8C1D40;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE) # Suppresses code in the slide deck.
+
+library(tidyverse) # Loads tidyverse which includes dplyr, ggplot2, readr, read_csv(), drop_na() and %>% pipe
+library(plotly)    # Enables plotly which is a library that has interactive graphs
+
+# Read Punta Cana dataset
+pdc <- read_csv("PuntCanaListingsData-AirRoi.com-04-04-2026.csv")
+
+# Code to Keep only the variables within the scope of this analysis for HW3 and establish a tibble
+
+pdc_small <- pdc %>%     # Establishes the data frame (tibble) - table with rows and columns
+  select(
+    listing_id,          # Unique identifier
+    bedrooms,            # X-variable (predictor for HW3)
+    ttm_avg_rate,        # Y-variable (outcome)
+    baths,               # Will be an X-variable in Project 1
+    room_type            # Will be an X-variable in Project 1
+  ) %>%                  # Pipe comes AFTER the closing parenthesis
+
+  drop_na(bedrooms, ttm_avg_rate) # Remove missing values
+
+# Quick sanity check: inspect the X and Y variables before modeling
+# This confirms ranges, missing values, and basic distribution
+summary(select(pdc_small, bedrooms, ttm_avg_rate))
+```
+
+
+## Introduction: Rationale for Completing This Analysis
+
+Given the recent volatility in the stock market, I have decided to diversify my long‑term investment strategy by opening a self‑directed Roth IRA to purchase real estate in Punta Cana, Dominican Republic. My goal is to acquire a property that can operate as a profitable Airbnb rental while also appreciating in value over time.
+
+To make informed investment decisions, I need to understand which property features — such as the number of bedrooms — make a listing more attractive to tourists and more lucrative as a short‑term rental. This analysis uses real Punta Cana listing data to explore how bedroom count relates to nightly rental rates, forming the foundation for more advanced modeling project.
+
+## Data Overview
+```{r}
+summary(select(pdc_small, bedrooms, ttm_avg_rate))
+```
+
+
+## Scatterplot: Bedrooms vs Nightly Rate
+```{r scatterplot, echo=FALSE, fig.width=7, fig.height=5}
+ggplot(pdc_small, aes(x = bedrooms, y = ttm_avg_rate)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  labs(
+    title = "Bedrooms vs Nightly Rate",
+    x = "Number of Bedrooms",
+    y = "TTM Average Nightly Rate"
+  ) +
+  theme_minimal()
+```
+
+This scatterplot shows that listings with more bedrooms tend to command higher prices.
+
+
+## Scatterplot with Regression Line
+```{r regression_line, echo=FALSE, message=FALSE, warning=FALSE, fig.width=7, fig.height=5}
+
+ggplot(pdc_small, aes(x = bedrooms, y = ttm_avg_rate)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_smooth(method = "lm", se = TRUE, color = "darkred") +
+  labs(
+    title = "Bedrooms vs Nightly Rate with Regression Line",
+    x = "Number of Bedrooms",
+    y = "TTM Average Nightly Rate"
+  ) +
+  theme_minimal()
+```
+
+The regression line shows nightly rates increase as bedroom count rises.
+
+
+
+
+
+
+## Regression Model Output
+```{r}
+# Fit simple linear regression model:
+# Y = ttm_avg_rate (nightly rate)
+# X = bedrooms (number of bedrooms)
+# This model estimates how much nightly rate increases for each additional bedroom.
+model <- lm(ttm_avg_rate ~ bedrooms, data = pdc_small)
+
+# Display full regression output:
+# - Coefficients (intercept and slope)
+# - Standard errors
+# - t-values and p-values (significance)
+# - R-squared (variance explained)
+# - F-statistic (overall model significance)
+summary(model)
+```
+
+## Regression Equation
+
+Using the coefficient estimates from the regression output:
+- Intercept (β0) = -231.11
+- Slope (β1) = 190.26
+
+## The fitted regression equation is:
+
+
+
+\[
+\hat{Y} = -231.11 + 190.26 \cdot \text{Bedrooms}
+\]
+
+## Standard Error of the Regression
+
+The **standard error of the regression (SER)** measures the typical size of the residuals — how far the observed nightly rates deviate from the regression line.
+
+
+
+\[
+SER = \sqrt{\frac{1}{n - 2} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2}
+\]
+
+
+The SER of 132.5 indicates that the model’s predictions typically deviate from actual nightly rates by about $132.
+This is moderate relative to the overall price range, suggesting that bedroom count explains some—but not all—of the variation in nightly rates.
+It means that we probably need to complete a multiple regression analysis.
+
+## Interpretation of the Slope
+
+The estimated slope for **bedrooms** is **190.26**.  
+This means:
+
+**For every additional bedroom, the predicted TTM average nightly rate increases by about \$190.26 on average.**
+
+Because the p‑value for the slope is extremely small (\(< 2e-16\)), the relationship between bedrooms and nightly rate is **statistically significant**.
+
+
+
+## Interpretation of the Intercept
+
+The intercept is **–231.11**, which represents the predicted nightly rate when the number of bedrooms is zero.
+
+This value is **not meaningful in a real‑estate context**, but it is required mathematically to anchor the regression line.
+
+
+
+## Interpretation of R-Squared
+
+The regression model has an R-squared value of **0.4077**.
+
+This means:
+
+**Approximately 40.8% of the variation in TTM average nightly rate is explained by differences in the number of bedrooms.**
+
+This indicates a moderately strong relationship for a single‑predictor model.
+
+
+
+## Interpretation of Overall Model Significance
+
+The F-statistic is **129.4** with a p-value **< 2.2e-16**.
+
+This indicates:
+
+**The overall regression model is statistically significant**, meaning bedrooms meaningfully predict nightly rate.
+
+
+
+## Conclusion
+
+Based on this simple linear regression analysis:
+
+- The number of bedrooms is a **statistically significant** predictor of TTM average nightly rate.  
+- Each additional bedroom is associated with an estimated **\$190.26 increase** in nightly rate, on average.  
+- The model explains approximately **40.8%** of the variation in nightly rates.  
+- While bedrooms matter, other variables not included in this simple model also influence pricing.
+
+Overall, there is a clear positive relationship between bedroom count and nightly rate, and this model provides a strong first step in understanding pricing dynamics in this market.
+
+Next Steps are to perform a multiple regression analysis to identify all the key metrics which influence pricing for Airbnb's in Punta Cana.
+
+## Why Include Diagnostic Plots?
+
+To ensure that the simple linear regression model is appropriate for this analysis, it is important to evaluate whether the model assumptions are reasonably met.
+
+- **Residual Plot** — checks whether the relationship is approximately linear and whether the residuals show constant variance across fitted values.  
+- **Fitted vs Actual Plot** — visualizes how well the model’s predictions align with the true nightly rates.  
+- **Purpose** — these diagnostics help confirm that the model is reliable and that the conclusions drawn from it are valid.
+
+Including these plots strengthens the credibility of the analysis and provides a more complete understanding of model performance.
+
+
+## Residual Plot
+```{r residuals, echo=FALSE, fig.width=7, fig.height=5}
+# Compute residuals and fitted values
+residual_data <- data.frame(
+  fitted = fitted(model),
+  residuals = resid(model)
+)
+
+ggplot(residual_data, aes(x = fitted, y = residuals)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_hline(yintercept = 0, color = "darkred", linetype = "dashed") +
+  labs(
+    title = "Residuals vs Fitted Values",
+    x = "Fitted Values (Predicted Nightly Rate)",
+    y = "Residuals"
+  ) +
+  theme_minimal()
+```
+
+Residuals scatter evenly around the zero line, showing no clear pattern or bias.
+
+## Fitted vs Actual Plot
+```{r fitted_vs_actual, echo=FALSE, fig.width=7, fig.height=5}
+# Compute fitted values and actual values
+fitted_data <- data.frame(
+  actual = pdc_small$ttm_avg_rate,
+  fitted = fitted(model)
+)
+
+ggplot(fitted_data, aes(x = fitted, y = actual)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_abline(intercept = 0, slope = 1, color = "darkred", linetype = "dashed") +
+  labs(
+    title = "Fitted vs Actual Nightly Rates",
+    x = "Fitted Values (Predicted Nightly Rate)",
+    y = "Actual Nightly Rate"
+  ) +
+  theme_minimal()
+```
+
+Points that fall close to the dashed 45‑degree line indicate accurate predictions.<br>  
+
+
+
+
+
+
+
+
+## Interactive Plotly Scatterplot
+```{r, message=FALSE, warning=FALSE}
+plot_ly(
+  data = pdc_small,
+  x = ~bedrooms,
+  y = ~ttm_avg_rate,
+  type = "scatter",
+  mode = "markers",
+  marker = list(color = "steelblue")
+) %>%
+  add_lines(
+    x = pdc_small$bedrooms,
+    y = fitted(lm(ttm_avg_rate ~ bedrooms, data = pdc_small)),
+    line = list(color = "red")
+  ) %>%
+  layout(
+    title = "Interactive Scatterplot with Regression Line",
+    xaxis = list(title = "Number of Bedrooms"),
+    yaxis = list(title = "TTM Average Nightly Rate")
+  )
+```
+
+Residuals follow the diagonal closely, indicating the errors are approximately normally distributed.
+
+## Thank You
+
+Questions or comments are welcome.
